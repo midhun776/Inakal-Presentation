@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
+import 'package:image_cropper/image_cropper.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:inakal/common/controller/user_data_controller.dart';
 import 'package:inakal/common/widgets/custom_button.dart';
 import 'package:inakal/constants/app_constants.dart';
 import 'package:inakal/constants/widgets/light_pink_gradient_from_top.dart';
+import 'package:inakal/features/drawer/screens/edit_profilenew.dart';
 import 'package:inakal/features/drawer/service/edit_profile_service.dart';
 import 'package:inakal/features/drawer/widgets/Edit_profle_dropdown.dart';
 import 'package:inakal/features/auth/registration/screens/image_upload_screen.dart';
@@ -942,16 +945,70 @@ class _EditProfileState extends State<EditProfile> {
         userController.userData.value.user?.youtubeLink ?? "";
 
     hobbies = "${userController.userData.value.user?.hobbies}".split(",");
-    languages =
-        userController.userData.value.user?.languagesKnown != null
-            ? "${userController.userData.value.user?.languagesKnown}".split(",")
-            : [];
+    languages = userController.userData.value.user?.languagesKnown != null
+        ? "${userController.userData.value.user?.languagesKnown}".split(",")
+        : [];
 
     casteList =
         religionCasteData[_religionController.text]?.keys.toList() ?? [];
     subCasteList = religionCasteData[_religionController.text]
             ?[_casteController.text] ??
         [];
+  }
+
+  XFile? _pickedFile;
+  CroppedFile? _croppedFile;
+  bool _isUploading = false;
+
+  Future<void> _pickImage(ImageSource source) async {
+    final pickedFile = await ImagePicker().pickImage(source: source);
+    if (pickedFile != null) {
+      setState(() {
+        _pickedFile = pickedFile;
+      });
+    }
+    _cropImage();
+  }
+
+  Future<void> _cropImage() async {
+    if (_pickedFile != null) {
+      final croppedFile = await ImageCropper().cropImage(
+        sourcePath: _pickedFile!.path,
+        compressFormat: ImageCompressFormat.jpg,
+        compressQuality: 100,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Cropper',
+            toolbarColor: Colors.deepOrange,
+            toolbarWidgetColor: Colors.white,
+            initAspectRatio: CropAspectRatioPreset.square,
+            lockAspectRatio: false,
+          ),
+          IOSUiSettings(
+            title: 'Cropper',
+          ),
+          // if (kIsWeb)
+          //   WebUiSettings(
+          //     context: context,
+          //     presentStyle: WebPresentStyle.dialog,
+          //     size: const CropperSize(width: 520, height: 520),
+          //   ),
+        ],
+      );
+      if (croppedFile != null) {
+        setState(() {
+          _croppedFile = croppedFile;
+        });
+      }
+      _uploadImage();
+    }
+  }
+
+  Future<void> _uploadImage() async {
+    setState(() {
+      _isUploading = true;
+    });
+    await EditProfileService().uploadImage(context, _croppedFile);
   }
 
   @override
@@ -1051,7 +1108,10 @@ class _EditProfileState extends State<EditProfile> {
                                       context,
                                       MaterialPageRoute(
                                           builder: (context) =>
-                                              const ImageUploadScreen()));
+                                              ImagePickerScreen()));
+
+                                  // _pickImage(ImageSource.gallery);
+                                  // _uploadImage();
                                 },
                                 iconSize: 12,
                               ),
@@ -1155,47 +1215,51 @@ class _EditProfileState extends State<EditProfile> {
                         width: MediaQuery.of(context).size.width * 0.6,
                         child: _dobController.text.isEmpty
                             ? GestureDetector(
-                              onTap: () async {
-                              FocusScope.of(context).requestFocus(FocusNode());
-                              DateTime? pickedDate = await showDatePicker(
-                                context: context,
-                                initialDate: DateTime.now(),
-                                firstDate: DateTime(1900),
-                                lastDate: DateTime.now(),
-                              );
-                              if (pickedDate != null) {
-                                _dobController.text =
-                                    '${pickedDate.year}-${pickedDate.month < 10 ? "0${pickedDate.month}" : "${pickedDate.month}"}-${pickedDate.day < 10 ? "0${pickedDate.day}" : "${pickedDate.day}"}';
-                              }
-                            },
-                              child: Text(
+                                onTap: () async {
+                                  FocusScope.of(context)
+                                      .requestFocus(FocusNode());
+                                  DateTime? pickedDate = await showDatePicker(
+                                    context: context,
+                                    initialDate: DateTime.now(),
+                                    firstDate: DateTime(1900),
+                                    lastDate: DateTime.now(),
+                                  );
+                                  if (pickedDate != null) {
+                                    _dobController.text =
+                                        '${pickedDate.year}-${pickedDate.month < 10 ? "0${pickedDate.month}" : "${pickedDate.month}"}-${pickedDate.day < 10 ? "0${pickedDate.day}" : "${pickedDate.day}"}';
+                                  }
+                                },
+                                child: Text(
                                   "Select Date of Birth",
                                   textAlign: TextAlign.end,
                                   style: TextStyle(
-                                      fontWeight: FontWeight.w500, fontSize: 16, color: AppColors.grey, fontStyle: FontStyle.italic),
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 16,
+                                      color: AppColors.grey,
+                                      fontStyle: FontStyle.italic),
                                 ),
-                            )
-                        
-                        : TextField(
-                            controller: _dobController,
-                            readOnly: true,
-                            decoration: null,
-                            onTap: () async {
-                              FocusScope.of(context).requestFocus(FocusNode());
-                              DateTime? pickedDate = await showDatePicker(
-                                context: context,
-                                initialDate: DateTime.now(),
-                                firstDate: DateTime(1900),
-                                lastDate: DateTime.now(),
-                              );
-                              if (pickedDate != null) {
-                                _dobController.text =
-                                    '${pickedDate.year}-${pickedDate.month < 10 ? "0${pickedDate.month}" : "${pickedDate.month}"}-${pickedDate.day < 10 ? "0${pickedDate.day}" : "${pickedDate.day}"}';
-                              }
-                            },
-                            textAlign: TextAlign.end,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w500, fontSize: 16)),
+                              )
+                            : TextField(
+                                controller: _dobController,
+                                readOnly: true,
+                                decoration: null,
+                                onTap: () async {
+                                  FocusScope.of(context)
+                                      .requestFocus(FocusNode());
+                                  DateTime? pickedDate = await showDatePicker(
+                                    context: context,
+                                    initialDate: DateTime.now(),
+                                    firstDate: DateTime(1900),
+                                    lastDate: DateTime.now(),
+                                  );
+                                  if (pickedDate != null) {
+                                    _dobController.text =
+                                        '${pickedDate.year}-${pickedDate.month < 10 ? "0${pickedDate.month}" : "${pickedDate.month}"}-${pickedDate.day < 10 ? "0${pickedDate.day}" : "${pickedDate.day}"}';
+                                  }
+                                },
+                                textAlign: TextAlign.end,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w500, fontSize: 16)),
                       ),
                     ),
 
@@ -1335,17 +1399,17 @@ class _EditProfileState extends State<EditProfile> {
                             runSpacing: 8.0,
                             children: [
                               if (languages != null || languages.length > 0)
-                              ...languages.map((language) {
-                                return OptionWidget(
-                                  label: language,
-                                  icon: Icons.close,
-                                  onPressed: () {
-                                    setState(() {
-                                      languages.remove(language);
-                                    });
-                                  },
-                                );
-                              }).toList(),
+                                ...languages.map((language) {
+                                  return OptionWidget(
+                                    label: language,
+                                    icon: Icons.close,
+                                    onPressed: () {
+                                      setState(() {
+                                        languages.remove(language);
+                                      });
+                                    },
+                                  );
+                                }).toList(),
                               // Add Language Button
                               AddHobbieWidget(
                                 label: "Add",
@@ -1738,7 +1802,13 @@ class _EditProfileState extends State<EditProfile> {
                           label: "Country",
                           valueWidget: EditDropdownWidget(
                               controller: _countryController,
-                              values: ["India", "USA", "UK", "Canada", "Australia"])),
+                              values: [
+                                "India",
+                                "USA",
+                                "UK",
+                                "Canada",
+                                "Australia"
+                              ])),
                       const Divider(),
                       const SizedBox(height: 15),
 

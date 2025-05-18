@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_cropper/image_cropper.dart';
+import 'package:inakal/common/controller/user_data_controller.dart';
 import 'package:inakal/common/model/user_data_model.dart';
 import 'package:inakal/constants/config.dart';
 import 'package:inakal/features/auth/controller/auth_controller.dart';
@@ -11,6 +13,38 @@ import 'package:inakal/features/drawer/model/user_data_update_model.dart.dart';
 
 class EditProfileService {
   final AuthController authController = Get.find();
+
+  Future<String?> uploadImage(BuildContext context, CroppedFile? _croppedFile) async {
+    if (_croppedFile == null) return null;
+
+    String fileName = _croppedFile.path.split('/').last;
+    var request = http.MultipartRequest(
+        'POST', Uri.parse(updateProfilePicUrl));
+    request.fields['userid'] = authController.userId.value;
+    request.files.add(await http.MultipartFile.fromPath(
+        'file', _croppedFile.path,
+        filename: fileName));
+
+    http.StreamedResponse response = await request.send();
+    if (response.statusCode == 200) {
+      final respStr = await response.stream.bytesToString();
+      var jsonData = jsonDecode(respStr);
+      if (jsonData['status'] == "success") {
+        // Navigator.push(
+        //   context,
+        //   MaterialPageRoute(builder: (context) => const HomePage()),
+        // );
+        _showSnackbar(context, jsonData['message']);
+        final UserDataController userDataController = Get.find();
+        userDataController.updateProfilePic(jsonData['url']);
+        return jsonData['url'];
+      } else {
+        _showSnackbar(context, jsonData['message']);
+      }
+    } else {
+      _showSnackbar(context, 'Error uploading image');
+    }
+  }
 
   // profile data update
   Future<UserDataUpdateModel?> updateProfileDetails({

@@ -14,6 +14,8 @@ const TermsAndConditionsUrl = "${baseUrlWeb}terms";
 //Login and Registration
 const loginUrl = "${authBaseUrl}login";
 const registerUrl = "${authBaseUrl}register";
+const sentOtpUrl = "https://enakal.com/authapi/sendOtp";
+const verifyOtpUrl = "https://enakal.com/authapi/verifyLoginOtp";
 
 //User Profile
 const userProfileUrl = "${baseUrl}userProfile";
@@ -42,6 +44,7 @@ const userFamilyUpdateUrl = "${baseUrl}updateFamilyDetails";
 const userLocationUpdateUrl = "${baseUrl}updateLocationDetails";
 const userPreferenceUpdateUrl = "${baseUrl}updatePartnerPrefs";
 const userAdditionalDetailUpdateUrl = "${baseUrl}updateAdditionalDetails";
+const updateProfilePicUrl = "${baseUrl}updateProfilePic";
 
 // Other Profile API's
 const otherProfileUrl = "${baseUrl}get_user_data"; //otherUserDetails
