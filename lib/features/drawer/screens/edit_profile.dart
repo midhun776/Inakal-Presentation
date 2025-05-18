@@ -1,13 +1,21 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
+import 'package:http/http.dart' as http;
 import 'package:get/get.dart';
+import 'package:http_parser/http_parser.dart';
+
+import 'package:path/path.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:inakal/common/controller/user_data_controller.dart';
 import 'package:inakal/common/widgets/custom_button.dart';
 import 'package:inakal/constants/app_constants.dart';
 import 'package:inakal/constants/widgets/light_pink_gradient_from_top.dart';
+import 'package:inakal/features/auth/controller/auth_controller.dart';
 import 'package:inakal/features/drawer/screens/edit_profilenew.dart';
 import 'package:inakal/features/drawer/service/edit_profile_service.dart';
 import 'package:inakal/features/drawer/widgets/Edit_profle_dropdown.dart';
@@ -22,6 +30,7 @@ import 'package:inakal/features/drawer/widgets/edit_profile_widgets/editable_tex
 import 'package:inakal/features/drawer/widgets/edit_profile_widgets/header_widget.dart';
 import 'package:inakal/features/drawer/widgets/option_widget.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
+import 'package:mime/mime.dart';
 
 class EditProfile extends StatefulWidget {
   const EditProfile({super.key});
@@ -956,59 +965,50 @@ class _EditProfileState extends State<EditProfile> {
         [];
   }
 
-  XFile? _pickedFile;
-  CroppedFile? _croppedFile;
-  bool _isUploading = false;
+  String urlLink = '';
+  File? _selectedImage;
+  final ImagePicker _picker = ImagePicker();
 
-  Future<void> _pickImage(ImageSource source) async {
-    final pickedFile = await ImagePicker().pickImage(source: source);
-    if (pickedFile != null) {
-      setState(() {
-        _pickedFile = pickedFile;
-      });
-    }
-    _cropImage();
-  }
+  Future<void> pickAndUploadImage() async {
+    final XFile? pickedFile =
+        await _picker.pickImage(source: ImageSource.gallery);
 
-  Future<void> _cropImage() async {
-    if (_pickedFile != null) {
-      final croppedFile = await ImageCropper().cropImage(
-        sourcePath: _pickedFile!.path,
-        compressFormat: ImageCompressFormat.jpg,
-        compressQuality: 100,
-        uiSettings: [
-          AndroidUiSettings(
-            toolbarTitle: 'Cropper',
-            toolbarColor: Colors.deepOrange,
-            toolbarWidgetColor: Colors.white,
-            initAspectRatio: CropAspectRatioPreset.square,
-            lockAspectRatio: false,
-          ),
-          IOSUiSettings(
-            title: 'Cropper',
-          ),
-          // if (kIsWeb)
-          //   WebUiSettings(
-          //     context: context,
-          //     presentStyle: WebPresentStyle.dialog,
-          //     size: const CropperSize(width: 520, height: 520),
-          //   ),
-        ],
-      );
-      if (croppedFile != null) {
-        setState(() {
-          _croppedFile = croppedFile;
-        });
-      }
-      _uploadImage();
-    }
-  }
+    if (pickedFile == null) return;
 
-  Future<void> _uploadImage() async {
     setState(() {
-      _isUploading = true;
+      _selectedImage = File(pickedFile.path);
     });
-    await EditProfileService().uploadImage(context, _croppedFile);
+
+    var uri = Uri.parse('https://enakal.com/authapi/updateProfilePic');
+
+    var request = http.MultipartRequest('POST', uri);
+    request.files.add(await http.MultipartFile.fromPath(
+      'file',
+      _selectedImage!.path,
+      contentType: MediaType.parse(lookupMimeType(_selectedImage!.path) ?? 'image/jpeg'),
+      filename: basename(_selectedImage!.path),
+    ));
+
+    try {
+      var response = await request.send();
+
+      if (response.statusCode == 200) {
+        var responseData = await response.stream.bytesToString();
+        var jsonData = json.decode(responseData);
+
+        if (jsonData["uploaded"] == 1 && jsonData["url"] != null) {
+          setState(() {
+            urlLink = jsonData["url"];
+          });
+        } else {
+          print("Upload failed: ${jsonData["message"]}");
+        }
+      } else {
+        print("HTTP Error: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("Exception during upload: $e");
+    }
   }
 
   @override
@@ -1104,11 +1104,13 @@ class _EditProfileState extends State<EditProfile> {
                                   size: 22,
                                 ),
                                 onPressed: () {
-                                  Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (context) =>
-                                              ImagePickerScreen()));
+                                  // Navigator.push(
+                                  //     context,
+                                  //     MaterialPageRoute(
+                                  //         builder: (context) =>
+                                  //             ImagePickerScreen()));
+
+                                  pickAndUploadImage();
 
                                   // _pickImage(ImageSource.gallery);
                                   // _uploadImage();

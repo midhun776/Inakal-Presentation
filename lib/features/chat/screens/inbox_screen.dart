@@ -14,7 +14,7 @@ class InboxScreen extends StatefulWidget {
 }
 
 class _InboxScreenState extends State<InboxScreen> {
-  List<String> filters = ["All Chats", "Matches", "Psychologists"];
+  List<String> filters = ["All Chats", "Unread Chats"];
   String selectedFilter = "All Chats";
   InboxModel? inboxModel;
   List<Map<String, String>> allUsers = [
@@ -91,19 +91,17 @@ class _InboxScreenState extends State<InboxScreen> {
       "recently_seen": "last seen 05:18",
     },
   ];
-  List<Map<String, String>> filteredUsers = [];
+  List<Map<String, dynamic>> filteredUsers = [];
+  List<Map<String, dynamic>> tempUsers = [];
 
   void filterUsers(String filter) {
     setState(() {
       selectedFilter = filter;
       if (filter == "All Chats") {
-        filteredUsers = List.from(allUsers); // Show all users
-      } else if (filter == "Matches") {
+        filteredUsers = tempUsers; // Show all users
+      } else if (filter == "Unread Chats") {
         filteredUsers =
-            allUsers.where((user) => user["req_status"] == "Accepted").toList();
-      } else if (filter == "Psychologists") {
-        filteredUsers =
-            allUsers.where((user) => user["req_status"] == "Pending").toList();
+            tempUsers.where((user) => user["lastMessageByMe"] != true).toList();
       }
     });
   }
@@ -123,20 +121,20 @@ class _InboxScreenState extends State<InboxScreen> {
       if (value != null) {
         setState(() {
           inboxModel = value;
-          filteredUsers = inboxModel!.inboxUser!
+          tempUsers = inboxModel!.inboxUser!
               .map((user) => {
                     "name": user.name!,
-                    "message": user.lastMessage!,
-                    "unread": user.unreadMsgs.toString(),
-                    "req_status":
-                        user.lastMessageByMe == true ? "Accepted" : "Pending",
-                    "time": user.lastMessageTime!,
                     "image": user.image!,
-                    "recently_seen": user.lastMessageByMe == true
-                        ? "online"
-                        : "last seen 10:28",
+                    "lastMessage": user.lastMessage!,
+                    "unread": user.unreadMsgs,
+                    "lastMessageTime": user.lastMessageTime!,
+                    "lastMessageByMe": user.lastMessageByMe,
+                    "unreadMsgs": user.unreadMsgs,
                   })
               .toList();
+        });
+        setState(() {
+          filteredUsers = tempUsers; // Initially show all users
         });
       }
     });
@@ -175,6 +173,7 @@ class _InboxScreenState extends State<InboxScreen> {
             children: [
               // Top Filters of chats
               Container(
+                width: MediaQuery.of(context).size.width,
                 color: AppColors.softPink.withOpacity(0.4),
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,

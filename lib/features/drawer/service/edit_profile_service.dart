@@ -9,40 +9,87 @@ import 'package:inakal/common/model/user_data_model.dart';
 import 'package:inakal/constants/config.dart';
 import 'package:inakal/features/auth/controller/auth_controller.dart';
 import 'package:inakal/features/auth/model/user_registration_data_model.dart';
+import 'package:inakal/features/drawer/model/upload_image_model.dart';
 import 'package:inakal/features/drawer/model/user_data_update_model.dart.dart';
 
 class EditProfileService {
   final AuthController authController = Get.find();
+  final UserDataController userDataController = Get.find();
 
-  Future<String?> uploadImage(BuildContext context, CroppedFile? _croppedFile) async {
-    if (_croppedFile == null) return null;
+  // Future<String?> uploadImage(BuildContext context, CroppedFile? _croppedFile) async {
+  //   if (_croppedFile == null) return null;
 
-    String fileName = _croppedFile.path.split('/').last;
-    var request = http.MultipartRequest(
-        'POST', Uri.parse(updateProfilePicUrl));
-    request.fields['userid'] = authController.userId.value;
-    request.files.add(await http.MultipartFile.fromPath(
-        'file', _croppedFile.path,
-        filename: fileName));
+  //   String fileName = _croppedFile.path.split('/').last;
+  //   var request = http.MultipartRequest(
+  //       'POST', Uri.parse(updateProfilePicUrl));
+  //   request.fields['userid'] = authController.userId.value;
+  //   request.files.add(await http.MultipartFile.fromPath(
+  //       'file', _croppedFile.path,
+  //       filename: fileName));
 
-    http.StreamedResponse response = await request.send();
-    if (response.statusCode == 200) {
-      final respStr = await response.stream.bytesToString();
-      var jsonData = jsonDecode(respStr);
-      if (jsonData['status'] == "success") {
-        // Navigator.push(
-        //   context,
-        //   MaterialPageRoute(builder: (context) => const HomePage()),
-        // );
-        _showSnackbar(context, jsonData['message']);
-        final UserDataController userDataController = Get.find();
-        userDataController.updateProfilePic(jsonData['url']);
-        return jsonData['url'];
+  //   http.StreamedResponse response = await request.send();
+  //   if (response.statusCode == 200) {
+  //     final respStr = await response.stream.bytesToString();
+  //     var jsonData = jsonDecode(respStr);
+  //     if (jsonData['status'] == "success") {
+  //       // Navigator.push(
+  //       //   context,
+  //       //   MaterialPageRoute(builder: (context) => const HomePage()),
+  //       // );
+  //       _showSnackbar(context, jsonData['message']);
+  //       final UserDataController userDataController = Get.find();
+  //       userDataController.updateProfilePic(jsonData['url']);
+  //       return jsonData['url'];
+  //     } else {
+  //       _showSnackbar(context, jsonData['message']);
+  //     }
+  //   } else {
+  //     _showSnackbar(context, 'Error uploading image');
+  //   }
+  // }
+
+  Future<UploadImageModel?> uploadImage({
+    // required String userId,
+    required String filePath,
+    required BuildContext context,
+  }) async {
+    try {
+      final token =
+        authController.token.value;
+      final headers = {
+      'Authorization': 'Bearer $token',
+    };
+
+      var request =
+          http.MultipartRequest('POST', Uri.parse('https://enakal.com/authapi/updateProfilePic'));
+
+      request.fields.addAll({'userid': authController.userId.value});
+      request.files.add(await http.MultipartFile.fromPath('file', filePath));
+      request.headers.addAll(headers);
+
+      http.StreamedResponse response = await request.send();
+
+      if (response.statusCode == 200) {
+        String responseData = await response.stream.bytesToString();
+        Map<String, dynamic> jsonResponse = jsonDecode(responseData);
+        var uploadImageModel = UploadImageModel.fromJson(jsonResponse);
+        if (uploadImageModel.status == 'success') {
+          _showSnackbar(context,
+              uploadImageModel.message ?? 'Image uploaded successfully');
+          String newImageUrl = uploadImageModel.imageUrl;
+          userDataController.updateProfilePic(newImageUrl);
+        } else {
+          _showSnackbar(
+              context, uploadImageModel.message ?? 'Failed to upload image');
+        }
+        return uploadImageModel;
       } else {
-        _showSnackbar(context, jsonData['message']);
+        print('Error: ${response.reasonPhrase}');
+        return null;
       }
-    } else {
-      _showSnackbar(context, 'Error uploading image');
+    } catch (e) {
+      print('Exception: $e');
+      return null;
     }
   }
 

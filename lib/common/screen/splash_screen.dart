@@ -75,9 +75,9 @@ class _SplashScreenState extends State<SplashScreen>
     String? token = prefs.getString('token');
 
     if (token != null && token.isNotEmpty) {
+      print("Token: $token");
       final AuthController authController = Get.find();
       await authController.loadAuthData();
-
       final request = http.MultipartRequest('POST', Uri.parse(userProfileUrl));
       final headers = {
         'Authorization': 'Bearer $token',
@@ -88,11 +88,16 @@ class _SplashScreenState extends State<SplashScreen>
       if (response.statusCode == 200) {
         final responseBody = await response.stream.bytesToString();
         final jsonResponse = json.decode(responseBody);
+      print(token);
+      print(jsonResponse["isLoggedin"]);
 
         final userModel = UserDataModel.fromJson(jsonResponse);
+      print("Haii");
 
         final userController = Get.find<UserDataController>();
+      print("Haiiii");
         userController.setUserData(userModel);
+        
         // Navigate to Onboarding screen after the animation
         _navigateToNextScreen();
       } else if (response.statusCode == 401) {

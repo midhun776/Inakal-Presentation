@@ -10,7 +10,7 @@ class UserDataModel {
     user = json['user'] != null ? new User.fromJson(json['user']) : null;
     message = json['message'];
     type = json['type'];
-    isLoggedin = json['isLoggedin'];
+    isLoggedin = json['isLoggedin'] ?? true;
   }
 
   Map<String, dynamic> toJson() {
@@ -95,7 +95,7 @@ class User {
   String? linkedinLink;
   String? youtubeLink;
   String? lastSeen;
-  bool? consultancyRequired;
+  String? consultancyRequired;
   String? needLikeMindedPartner;
   String? assignedLeadId;
   String? preferredQualification;

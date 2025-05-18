@@ -19,18 +19,19 @@ class CounsellorsScreen extends StatefulWidget {
 class _CounsellorsScreenState extends State<CounsellorsScreen> {
   var btext = "";
   var bcolor = AppColors.primaryRed;
-  bool? consultancy_required = false;
+  String? consultancy_required = "no";
   PsychologistModel? psychologistModelData;
   bool isDoctorsLoading = true;
-  
+
   final userController = Get.find<UserDataController>();
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-    consultancy_required = userController.userData.value.user?.consultancyRequired;
-    if (consultancy_required == false || consultancy_required == null) {
+    consultancy_required =
+        userController.userData.value.user?.consultancyRequired;
+    if (consultancy_required == "no" || consultancy_required == null) {
       btext = "Book your appointment";
       bcolor = AppColors.deepBlue;
     } else {
@@ -59,12 +60,19 @@ class _CounsellorsScreenState extends State<CounsellorsScreen> {
   Future<void> bookAppointment() async {
     await PsychologistService().bookAppointment(context).then((value) {
       if (value != null) {
+        print("Value " + value.type.toString()+" Messaage: "+value.message.toString());
+        if (value.type == "success") {
+          value.type = "warning";
+        } else {
+          value.type = "warning";
+        }
+        print("Book Appointment: ${value.type}");
         setState(() {
-          userController.userData.value.user?.consultancyRequired = true;
+          userController.userData.value.user?.consultancyRequired = "yes";
           if (value.type == "success") {
             btext = "Your appointment is scheduled";
             bcolor = AppColors.freshGreen;
-            consultancy_required = true;
+            consultancy_required = "yes";
             showDialog(
               context: context,
               builder: (BuildContext dialogContext) {
@@ -73,7 +81,7 @@ class _CounsellorsScreenState extends State<CounsellorsScreen> {
                     'Success',
                     style: TextStyle(color: AppColors.freshGreen),
                   ),
-                  content: Text(value.message!),
+                  content: Text(btext),
                   actions: [
                     TextButton(
                       child: Text('OK'),
@@ -92,7 +100,7 @@ class _CounsellorsScreenState extends State<CounsellorsScreen> {
             );
             btext = "Your appointment is Pending";
             bcolor = AppColors.freshGreen;
-            consultancy_required = true;
+            consultancy_required = "yes";
             showDialog(
               context: context,
               builder: (BuildContext dialogContext) {
