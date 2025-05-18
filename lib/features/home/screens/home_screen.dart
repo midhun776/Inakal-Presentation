@@ -246,7 +246,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                       image: relatedProfileModel
                                                   ?.relatedProfiles?[index]
                                                   .image ==
-                                              "https://etutor.s3.ap-south-1.amazonaws.com/users/avatar.png"
+                                              "https://etutor.s3.ap-south-1.amazonaws.com/users/avatar.png" ||
+                                              relatedProfileModel
+                                                  ?.relatedProfiles?[index]
+                                                  .image ==
+                                              "https://d2j53bekxdymtn.cloudfront.net/clients/2bf5a15ef0badeeedb3f0cea08aca4197UID2.png"
                                           ? "https://i.pinimg.com/736x/dc/9c/61/dc9c614e3007080a5aff36aebb949474.jpg"
                                           : "${relatedProfileModel?.relatedProfiles?[index].image}"));
                             }
